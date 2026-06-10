@@ -1,0 +1,26 @@
+{
+  "name": "logserver",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "setup": "pnpm --filter shared run setup",
+    "up:buffer-a": "pnpm --filter buffer-a run up",
+    "up:buffer-b": "pnpm --filter buffer-b run up",
+    "up:node1": "pnpm --filter es-node1 run up",
+    "up:node2": "pnpm --filter es-node2 run up",
+    "up:node3": "pnpm --filter es-node3 run up",
+    "up:cluster": "pnpm --filter 'es-node*' run up",
+    "up:buffers": "pnpm --filter 'buffer-*' run up",
+    "up:all": "pnpm -r run up",
+    "down:all": "pnpm -r run down",
+    "ps:all": "pnpm -r run ps",
+    "health": "node scripts/health-check.mjs",
+    "deploy:agent:linux": "pnpm --filter agent-linux run deploy",
+    "deploy:agent:windows": "pnpm --filter agent-windows run deploy"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,10 @@
+{
+  "name": "agent-linux",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "bash install.sh",
+    "validate": "filebeat test config -c filebeat.yml",
+    "test:output": "filebeat test output -c filebeat.yml"
+  }
+}

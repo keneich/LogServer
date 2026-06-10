@@ -1,0 +1,14 @@
+http.host: "0.0.0.0"
+http.port: 9600
+
+# Persistent Queue — ES 장애 시 로그 유실 방지
+queue.type: persisted
+queue.max_bytes: 8gb
+queue.checkpoint.writes: 1024
+
+pipeline.workers: 8
+pipeline.batch.size: 1000
+pipeline.batch.delay: 50
+
+log.level: info
+log.format: json

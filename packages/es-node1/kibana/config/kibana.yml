@@ -1,0 +1,13 @@
+server.host: "0.0.0.0"
+server.port: 5601
+server.name: "logserver-kibana"
+
+elasticsearch.hosts: ["https://elasticsearch:9200"]
+elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/certs/ca.crt"]
+
+logging.appenders.file.type: file
+logging.appenders.file.fileName: /usr/share/kibana/logs/kibana.log
+logging.appenders.file.layout.type: json
+logging.root.appenders: [default, file]
+
+i18n.locale: "ko-KR"

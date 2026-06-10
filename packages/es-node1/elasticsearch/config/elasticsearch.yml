@@ -1,0 +1,9 @@
+cluster.name: ${ES_CLUSTER_NAME}
+node.name: node1
+node.roles: [master]
+
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+path.logs: /usr/share/elasticsearch/logs

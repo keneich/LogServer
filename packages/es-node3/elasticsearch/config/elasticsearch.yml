@@ -1,0 +1,13 @@
+cluster.name: ${ES_CLUSTER_NAME}
+node.name: node3
+node.roles: [data, data_hot, data_warm, data_cold, data_content, ingest]
+
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+path.data:
+  - /data/ssd
+  - /data/hdd
+
+path.logs: /usr/share/elasticsearch/logs

@@ -1,0 +1,44 @@
+winlogbeat.event_logs:
+  - name: System
+    ignore_older: 72h
+    level: critical, error, warning, information
+    processors:
+      - add_fields:
+          target: ""
+          fields:
+            log_category: windows_system
+
+  - name: Security
+    ignore_older: 72h
+    event_id: >
+      4624, 4625, 4634, 4647, 4648, 4656, 4663, 4670,
+      4672, 4688, 4697, 4698, 4699, 4700, 4701, 4702,
+      4720, 4722, 4723, 4724, 4725, 4726, 4738, 4740,
+      4767, 4768, 4769, 4771, 4776
+    processors:
+      - add_fields:
+          target: ""
+          fields:
+            log_category: windows_security
+
+processors:
+  - add_host_metadata: ~
+  - add_fields:
+      target: agent_zone
+      fields:
+        zone: "ZoneB"
+
+output.redis:
+  hosts: ["${REDIS_HOST:10.10.191.15}:6379"]
+  password: "${REDIS_PASSWORD}"
+  key: "winlogbeat"
+  db: 0
+  timeout: 5
+  bulk_max_size: 2048
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: "C:/ProgramData/winlogbeat/logs"
+  name: winlogbeat
+  keepfiles: 7

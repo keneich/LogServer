@@ -1,0 +1,11 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "bash scripts/setup-es.sh",
+    "gen-certs": "bash certs/generate-certs.sh",
+    "apply-ilm": "bash scripts/apply-ilm.sh",
+    "apply-template": "bash scripts/apply-template.sh"
+  }
+}

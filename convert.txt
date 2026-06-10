@@ -1,0 +1,177 @@
+================================================================================
+  Markdown → PDF / HTML 변환 가이드
+  LogServer 프로젝트
+================================================================================
+
+--------------------------------------------------------------------------------
+  1. 사전 요구사항
+--------------------------------------------------------------------------------
+
+  [필수]
+  - Python 3.12+       : python3 --version
+  - pip (사용자 권한)  : pip3 --version
+
+  [변환 라이브러리 설치 - 최초 1회]
+
+    pip3 install --user --break-system-packages weasyprint markdown
+
+  설치 확인:
+    python3 -m weasyprint --version   → WeasyPrint version 68.x
+    python3 -c "import markdown; print('OK')"
+
+  [변환 스크립트 위치]
+    scripts/md_to_pdf.py   ← MD → PDF 변환
+    scripts/md_to_html.py  ← MD → HTML 변환
+
+
+--------------------------------------------------------------------------------
+  2. PDF 변환
+--------------------------------------------------------------------------------
+
+  [기본 사용법]
+
+    python3 scripts/md_to_pdf.py <파일명.md>
+
+  [예시]
+
+    python3 scripts/md_to_pdf.py README02-n.md
+    python3 scripts/md_to_pdf.py README01.md
+    python3 scripts/md_to_pdf.py WBS.md
+    python3 scripts/md_to_pdf.py README.md
+
+  [출력]
+    입력 파일과 동일한 위치에 .pdf 파일 생성
+    예) README02-n.md  →  README02-n.pdf
+
+  [PDF 스펙]
+    - 용지    : A4
+    - 여백    : 상하 18mm / 좌우 20mm
+    - 폰트    : Noto Sans KR (한국어), Noto Sans Mono (코드)
+    - 페이지  : 우하단 자동 번호 삽입 (n / 전체)
+    - 테이블  : 헤더 강조 + 짝수 행 음영
+    - 코드    : 다크 배경 (dark theme)
+    - 페이지 단절 방지 : 테이블·코드블록 중간 잘림 방지
+
+  [주의사항]
+    - 인터넷 연결 필요 (Google Fonts 다운로드)
+    - 인터넷 미연결 시 폰트가 시스템 기본값으로 대체됨 (한국어 깨질 수 있음)
+
+
+--------------------------------------------------------------------------------
+  3. HTML 변환
+--------------------------------------------------------------------------------
+
+  [기본 사용법]
+
+    python3 scripts/md_to_html.py <파일명.md>
+
+  [예시]
+
+    python3 scripts/md_to_html.py README02-n.md
+    python3 scripts/md_to_html.py README01.md
+    python3 scripts/md_to_html.py WBS.md
+    python3 scripts/md_to_html.py README.md
+
+  [출력]
+    입력 파일과 동일한 위치에 .html 파일 생성
+    예) README02-n.md  →  README02-n.html
+
+  [HTML 스펙]
+    - 레이아웃  : 좌측 고정 사이드바(TOC) + 우측 본문 2단 구조
+    - 폰트      : Noto Sans KR (한국어), Noto Sans Mono (코드)
+    - 테이블    : 헤더 강조 + 짝수 행 음영 + 가로 스크롤 자동 처리
+    - 사이드바  : 섹션별 목차 링크
+    - 상단 버튼 : 스크롤 300px 이상 시 ↑ 버튼 표시
+    - 반응형    : 860px 이하 사이드바 자동 숨김
+    - 인쇄 최적화 : @media print 적용
+
+  [주의사항]
+    - 인터넷 연결 필요 (Google Fonts 로드)
+    - 오프라인 환경에서는 브라우저 기본 폰트로 표시됨
+    - Standalone HTML (단일 파일) — 별도 CSS 파일 불필요
+
+
+--------------------------------------------------------------------------------
+  4. 일괄 변환 (전체 .md 파일)
+--------------------------------------------------------------------------------
+
+  [PDF 일괄 변환]
+
+    for f in *.md; do python3 scripts/md_to_pdf.py "$f"; done
+
+  [HTML 일괄 변환]
+
+    for f in *.md; do python3 scripts/md_to_html.py "$f"; done
+
+  [PDF + HTML 동시 일괄 변환]
+
+    for f in *.md; do
+        python3 scripts/md_to_pdf.py  "$f"
+        python3 scripts/md_to_html.py "$f"
+    done
+
+
+--------------------------------------------------------------------------------
+  5. 트러블슈팅
+--------------------------------------------------------------------------------
+
+  [증상] libnspr4.so 오류 (md-to-pdf npm 사용 시)
+  -------------------------------------------------------
+  원인  : Puppeteer 내장 Chrome의 시스템 라이브러리 누락
+  해결  : npm 방식 대신 weasyprint(Python) 방식 사용 (본 가이드)
+
+  [증상] ModuleNotFoundError: No module named 'markdown'
+  -------------------------------------------------------
+  해결  :
+    pip3 install --user --break-system-packages markdown
+
+  [증상] ModuleNotFoundError: No module named 'weasyprint'
+  -------------------------------------------------------
+  해결  :
+    pip3 install --user --break-system-packages weasyprint
+
+  [증상] 한국어가 깨지거나 □□□ 로 표시됨
+  -------------------------------------------------------
+  원인  : Google Fonts 로드 실패 (인터넷 미연결)
+  해결  : 인터넷 연결 후 재실행
+          또는 시스템에 한국어 폰트 설치:
+            sudo apt-get install -y fonts-noto-cjk
+
+  [증상] WeasyPrint CSS 경고 메시지 출력
+  -------------------------------------------------------
+  원인  : 일부 CSS 속성 미지원 (무시해도 무방)
+  해결  : 정상 출력되면 경고는 무시
+
+  [증상] 테이블이 PDF에서 잘림
+  -------------------------------------------------------
+  원인  : 컬럼 수가 많거나 내용이 긴 경우
+  해결  : md_to_pdf.py 내 CSS의 font-size 를 줄이거나
+          @page margin 을 조정
+
+
+--------------------------------------------------------------------------------
+  6. 스크립트 내 주요 설정 변경
+--------------------------------------------------------------------------------
+
+  [PDF 용지 크기 변경]  scripts/md_to_pdf.py
+    @page { size: A4; }  →  size: A3; / size: Letter;
+
+  [PDF 여백 변경]  scripts/md_to_pdf.py
+    margin: 18mm 20mm 18mm 20mm;  →  원하는 값으로 수정
+
+  [HTML 사이드바 TOC 항목 추가]  scripts/md_to_html.py
+    <nav> 블록 내 <li><a href="#...">...</a></li> 추가
+
+  [공통 폰트 변경]  두 스크립트 모두
+    'Noto Sans KR'  →  원하는 Google Fonts 폰트명으로 교체
+
+
+================================================================================
+  생성 파일 목록
+================================================================================
+
+  scripts/md_to_pdf.py   ← PDF 변환 스크립트
+  scripts/md_to_html.py  ← HTML 변환 스크립트
+  convert.txt            ← 본 가이드 문서
+
+================================================================================

@@ -1,0 +1,66 @@
+filebeat.inputs:
+  - type: log
+    id: syslog
+    enabled: true
+    paths:
+      - /var/log/messages
+      - /var/log/syslog
+    fields:
+      log_type: syslog
+    fields_under_root: true
+    multiline.pattern: '^\w{3}\s+\d'
+    multiline.negate: true
+    multiline.match: after
+
+  - type: log
+    id: secure
+    enabled: true
+    paths:
+      - /var/log/secure
+      - /var/log/auth.log
+    fields:
+      log_type: auth
+    fields_under_root: true
+
+  - type: log
+    id: audit
+    enabled: true
+    paths:
+      - /var/log/audit/audit.log
+    fields:
+      log_type: audit
+    fields_under_root: true
+
+filebeat.modules:
+  - module: system
+    syslog:
+      enabled: true
+    auth:
+      enabled: true
+  - module: auditd
+    log:
+      enabled: true
+
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_fields:
+      target: agent_zone
+      fields:
+        zone: "ZoneA"
+
+output.redis:
+  hosts: ["${REDIS_HOST:10.10.187.11}:6379"]
+  password: "${REDIS_PASSWORD}"
+  key: "filebeat"
+  db: 0
+  timeout: 5
+  bulk_max_size: 2048
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0640

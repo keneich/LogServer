@@ -1,0 +1,61 @@
+services:
+  redis:
+    image: redis:${REDIS_VERSION}-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 4gb
+      --maxmemory-policy noeviction
+      --appendonly yes
+      --appendfsync everysec
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - lognet
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}
+    container_name: logstash
+    restart: unless-stopped
+    environment:
+      LS_JAVA_OPTS: "-Xms${LOGSTASH_HEAP_MIN} -Xmx${LOGSTASH_HEAP_MAX}"
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ES_HOSTS: ${ES_HOSTS}
+      ES_USER: ${ES_USER}
+      ES_PASSWORD: ${ES_PASSWORD}
+    ports:
+      - "9600:9600"
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../../packages/shared/certs:/usr/share/logstash/certs:ro
+      - logstash-pq:/usr/share/logstash/data
+    networks:
+      - lognet
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600/_node/stats || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis-data:
+  logstash-pq:
+
+networks:
+  lognet:
+    driver: bridge

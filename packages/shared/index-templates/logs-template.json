@@ -1,0 +1,46 @@
+{
+  "index_patterns": ["logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1,
+      "index.lifecycle.name": "logs-ilm-policy",
+      "index.lifecycle.rollover_alias": "logs",
+      "index.codec": "best_compression",
+      "index.refresh_interval": "30s"
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp":     { "type": "date" },
+        "log_category":   { "type": "keyword" },
+        "log_type":       { "type": "keyword" },
+        "message":        { "type": "text", "norms": false },
+        "host": {
+          "properties": {
+            "name":       { "type": "keyword" },
+            "ip":         { "type": "ip" },
+            "os.name":    { "type": "keyword" }
+          }
+        },
+        "agent_zone": {
+          "properties": {
+            "zone":       { "type": "keyword" }
+          }
+        },
+        "syslog_host":    { "type": "keyword" },
+        "syslog_program": { "type": "keyword" },
+        "auth_result":    { "type": "keyword" },
+        "audit_type":     { "type": "keyword" },
+        "winlog": {
+          "properties": {
+            "channel":    { "type": "keyword" },
+            "event_id":   { "type": "long" },
+            "level":      { "type": "keyword" }
+          }
+        }
+      }
+    }
+  },
+  "priority": 100,
+  "version": 1
+}

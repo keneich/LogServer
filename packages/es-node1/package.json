@@ -1,0 +1,14 @@
+{
+  "name": "es-node1",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "up": "docker compose --env-file .env up -d",
+    "down": "docker compose --env-file .env down",
+    "ps": "docker compose ps",
+    "logs": "docker compose logs -f",
+    "logs:es": "docker compose logs -f elasticsearch",
+    "logs:kibana": "docker compose logs -f kibana",
+    "reset-password": "docker compose exec elasticsearch bin/elasticsearch-reset-password -u elastic"
+  }
+}

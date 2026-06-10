@@ -1,0 +1,14 @@
+{
+  "name": "buffer-a",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "up": "docker compose --env-file .env up -d",
+    "down": "docker compose --env-file .env down",
+    "ps": "docker compose ps",
+    "logs": "docker compose logs -f",
+    "logs:logstash": "docker compose logs -f logstash",
+    "logs:redis": "docker compose logs -f redis",
+    "restart:logstash": "docker compose restart logstash"
+  }
+}

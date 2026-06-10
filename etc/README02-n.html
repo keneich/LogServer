@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content="md_to_html.py" />
+  <meta name="created" content="2026-04-23 16:52" />
+  <title>ELK 스택 기반 중앙화 로그 수집·모니터링 시스템</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-primary:    #0f3460;
+      --color-secondary:  #16213e;
+      --color-accent:     #e94560;
+      --color-bg:         #f7f9fc;
+      --color-surface:    #ffffff;
+      --color-border:     #d0dce8;
+      --color-text:       #1a1a2e;
+      --color-muted:      #6b7a99;
+      --color-code-bg:    #1e2a3a;
+      --color-code-text:  #cdd9e5;
+      --color-tag-bg:     #e8f0fe;
+      --color-tag-text:   #1a56db;
+      --radius:           8px;
+      --shadow:           0 2px 12px rgba(15,52,96,.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Noto Sans KR', 'DejaVu Sans', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--color-text);
+      background: var(--color-bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .page-wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* 사이드바 TOC */
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--color-secondary);
+      color: #c8d6e5;
+      padding: 32px 20px 40px;
+      font-size: 13px;
+      line-height: 1.6;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-logo::before {
+      content: "📋";
+      font-size: 16px;
+    }
+    .sidebar nav ul {
+      list-style: none;
+    }
+    .sidebar nav > ul > li {
+      margin-bottom: 4px;
+    }
+    .sidebar nav a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: #a8bbd0;
+      text-decoration: none;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar nav a:hover {
+      background: rgba(255,255,255,.08);
+      color: #ffffff;
+    }
+    .sidebar nav ul ul {
+      padding-left: 14px;
+      margin-top: 2px;
+    }
+    .sidebar nav ul ul a {
+      font-size: 12px;
+      color: #7a95b0;
+      padding: 3px 8px;
+    }
+    .sidebar nav ul ul a:hover {
+      color: #c8d6e5;
+    }
+
+    /* 메인 콘텐츠 */
+    main {
+      flex: 1;
+      min-width: 0;
+      padding: 48px 56px 80px;
+      max-width: 900px;
+    }
+
+    /* ── 헤더 메타 ────────────────────────────────────────────── */
+    .doc-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--color-border);
+    }
+    .doc-meta .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--color-tag-bg);
+      color: var(--color-tag-text);
+      letter-spacing: .03em;
+    }
+    .doc-meta .badge.date {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* ── 제목 ─────────────────────────────────────────────────── */
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+    h1 {
+      font-size: 30px;
+      color: var(--color-primary);
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 3px solid var(--color-primary);
+    }
+    h2 {
+      font-size: 21px;
+      color: var(--color-secondary);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid var(--color-border);
+    }
+    h3 {
+      font-size: 17px;
+      color: var(--color-text);
+      margin-top: 32px;
+      margin-bottom: 10px;
+    }
+    h4 {
+      font-size: 15px;
+      color: var(--color-text);
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+
+    /* 앵커 링크 */
+    h2::before, h3::before {
+      content: '';
+      display: block;
+      height: 72px;
+      margin-top: -72px;
+      pointer-events: none;
+    }
+
+    /* ── 단락·텍스트 ──────────────────────────────────────────── */
+    p {
+      margin-bottom: 14px;
+      word-break: keep-all;
+    }
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--color-border);
+      transition: color .15s, border-color .15s;
+    }
+    a:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    strong { font-weight: 700; color: var(--color-primary); }
+    em     { color: #555; font-style: italic; }
+
+    /* ── 테이블 ───────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 18px 0 24px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      background: var(--color-surface);
+    }
+    thead {
+      background: var(--color-primary);
+      color: #ffffff;
+    }
+    th {
+      padding: 11px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12.5px;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e8eef5;
+      vertical-align: top;
+      word-break: keep-all;
+    }
+    tbody tr:nth-child(even) { background: #f8fafd; }
+    tbody tr:hover           { background: #eef5ff; transition: background .12s; }
+
+    /* ── 코드 ─────────────────────────────────────────────────── */
+    code {
+      font-family: 'Noto Sans Mono', 'Ubuntu Mono', 'Courier New', monospace;
+      font-size: 13px;
+      background: #eef2f7;
+      color: #c0392b;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    pre {
+      background: var(--color-code-bg);
+      color: var(--color-code-text);
+      padding: 18px 20px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      box-shadow: var(--shadow);
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+      font-size: inherit;
+    }
+
+    /* ── 목록 ─────────────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 14px;
+    }
+    li { margin-bottom: 5px; }
+    li > ul, li > ol { margin-top: 5px; margin-bottom: 5px; }
+
+    /* ── 인용 ─────────────────────────────────────────────────── */
+    blockquote {
+      border-left: 4px solid var(--color-primary);
+      background: #f0f5ff;
+      margin: 16px 0;
+      padding: 10px 18px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #444;
+      font-size: 14px;
+    }
+    blockquote p { margin: 0; }
+
+    /* ── 구분선 ───────────────────────────────────────────────── */
+    hr {
+      border: none;
+      border-top: 1.5px solid var(--color-border);
+      margin: 36px 0;
+    }
+
+    /* ── 푸터 ─────────────────────────────────────────────────── */
+    .doc-footer {
+      margin-top: 72px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+      font-size: 12px;
+      color: var(--color-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* ── 상단 이동 버튼 ───────────────────────────────────────── */
+    .back-to-top {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      width: 42px;
+      height: 42px;
+      background: var(--color-primary);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      text-decoration: none;
+      border: none;
+      box-shadow: 0 4px 14px rgba(15,52,96,.3);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .back-to-top.visible { opacity: 1; }
+
+    /* ── 반응형 ───────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .sidebar   { display: none; }
+      main       { padding: 28px 20px 60px; }
+    }
+    @media print {
+      .sidebar, .back-to-top { display: none; }
+      main { padding: 0; max-width: 100%; }
+      a    { border: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- 사이드바 TOC -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">LogServer Docs</div>
+    <nav>
+      <ul>
+        <li><a href="#1-배경">1. 배경</a></li>
+        <li><a href="#2-목표">2. 목표</a></li>
+        <li><a href="#ilm-저장-정책">ILM 저장 정책</a></li>
+        <li>
+          <a href="#3-기술-스택">3. 기술 스택</a>
+          <ul>
+            <li><a href="#서버-컴포넌트">서버 컴포넌트</a></li>
+            <li><a href="#에이전트">에이전트</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#4-서버-스펙">4. 서버 스펙</a>
+          <ul>
+            <li><a href="#로그-발생량-추정">로그 발생량 추정</a></li>
+            <li><a href="#서버별-스펙">서버별 스펙</a></li>
+          </ul>
+        </li>
+        <li><a href="#5-구축-일정-8주">5. 구축 일정</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- 메인 콘텐츠 -->
+  <main id="top">
+    <div class="doc-meta">
+      <span class="badge">📄 LogServer</span>
+      <span class="badge">ELK Stack 8.17.4</span>
+      <span class="badge date">🗓 2026-04-23 16:52</span>
+    </div>
+
+    <div class="content">
+<h1 id="elk">ELK 스택 기반 중앙화 로그 수집·모니터링 시스템</h1>
+<h2 id="1">1. 배경</h2>
+<p>서버에서 발생하는 로그를 각 서버에서 개별 관리하면 보안 사고 탐지, 장애 분석, 감사 대응이 어렵습니다.</p>
+<p>약 70대의 이기종 서버에서 생성되는 로그를 단일 플랫폼으로 통합하여 가시성과 대응 속도를 높이는 것을 목표로 합니다.</p>
+<h2 id="2">2. 목표</h2>
+<table>
+<thead>
+<tr>
+<th>목표</th>
+<th>세부 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>통합 수집</strong></td>
+<td>업무망·인터넷망 전 서버의 시스템·보안·인증 로그 중앙화</td>
+</tr>
+<tr>
+<td><strong>안정적 보존</strong></td>
+<td>ILM 4단계 정책으로 1년간 비용 효율적 저장</td>
+</tr>
+<tr>
+<td><strong>실시간 모니터링</strong></td>
+<td>Kibana 대시보드로 상황별 로그 모니터링</td>
+</tr>
+<tr>
+<td><strong>유실 방지</strong></td>
+<td>Redis 버퍼로 수집 장애 시에도 로그 유실 Zero</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ilm">ILM 저장 정책</h2>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>기간</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hot</td>
+<td>0 ~ 30일</td>
+<td>읽기/쓰기</td>
+</tr>
+<tr>
+<td>Warm</td>
+<td>31 ~ 90일</td>
+<td>읽기 전용</td>
+</tr>
+<tr>
+<td>Cold</td>
+<td>91 ~ 365일</td>
+<td>저장</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>365일 이상</td>
+<td>삭제</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 기술 스택</h2>
+<h3 id="_1">서버 컴포넌트</h3>
+<table>
+<thead>
+<tr>
+<th>컴포넌트</th>
+<th>버전</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Elasticsearch</td>
+<td>8.17.4</td>
+<td>로그 인덱싱·검색·저장</td>
+</tr>
+<tr>
+<td>Logstash</td>
+<td>8.17.4</td>
+<td>로그 파싱·필터링·정규화</td>
+</tr>
+<tr>
+<td>Kibana</td>
+<td>8.17.4</td>
+<td>대시보드·시각화·알림</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>7.4</td>
+<td>로그 버퍼 큐 (유실 방지)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_2">에이전트</h3>
+<table>
+<thead>
+<tr>
+<th>컴포넌트</th>
+<th>버전</th>
+<th>대상 OS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filebeat</td>
+<td>8.17.4</td>
+<td>Linux (RHEL)</td>
+</tr>
+<tr>
+<td>Winlogbeat</td>
+<td>8.17.4</td>
+<td>Windows 2022</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4">4. 서버 스펙</h2>
+<h3 id="_3">로그 발생량 추정</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>대수</th>
+<th>서버당/일</th>
+<th>소계/일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux RHEL</td>
+<td>60대</td>
+<td>80 MB</td>
+<td>4,800 MB</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>9대</td>
+<td>200 MB</td>
+<td>1,800 MB</td>
+</tr>
+<tr>
+<td><strong>원본 합계</strong></td>
+<td><strong>69대</strong></td>
+<td></td>
+<td><strong>≈ 6.6 GB/일</strong></td>
+</tr>
+<tr>
+<td>ES 저장량 (압축 50% + 레플리카 1)</td>
+<td></td>
+<td></td>
+<td><strong>≈ 6.6 GB/일</strong></td>
+</tr>
+<tr>
+<td><strong>연간 총 저장량</strong></td>
+<td></td>
+<td></td>
+<td><strong>≈ 2.4 TB</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">서버별 스펙</h3>
+<h4 id="buffer-zonea-zoneb-1">Buffer 서버 (ZoneA · ZoneB 각 1대)</h4>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>스펙</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OS</td>
+<td>Ubuntu 24.04.2 LTS</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>8 core</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>16 GB (Redis 4 GB + Logstash 8 GB + OS 4 GB)</td>
+</tr>
+<tr>
+<td>SSD</td>
+<td>300 GB (OS 50 GB + Logstash PQ 50 GB + Redis AOF 10 GB + 여유)</td>
+</tr>
+<tr>
+<td>컨테이너</td>
+<td>Redis + Logstash (docker-compose)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="es-node1-elasticsearch-master-kibana">es-node1 (Elasticsearch Master + Kibana)</h4>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>스펙</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OS</td>
+<td>Ubuntu 24.04.2 LTS</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>8 core</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>32 GB (ES JVM 8 GB + Kibana 4 GB + OS 나머지)</td>
+</tr>
+<tr>
+<td>SSD</td>
+<td>500 GB (마스터 상태·로그 전용, 데이터 저장 없음)</td>
+</tr>
+<tr>
+<td>컨테이너</td>
+<td>Elasticsearch Master + Kibana (docker-compose)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="es-node2-es-node3-elasticsearch-data-node-2">es-node2 · es-node3 (Elasticsearch Data Node × 2)</h4>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>스펙</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OS</td>
+<td>Ubuntu 24.04.2 LTS</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>16 core</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>64 GB (ES JVM 32 GB + OS Page Cache 32 GB)</td>
+</tr>
+<tr>
+<td>NVMe SSD</td>
+<td>500 GB (Hot · Warm 티어)</td>
+</tr>
+<tr>
+<td>HDD</td>
+<td>2 TB (Cold 티어)</td>
+</tr>
+<tr>
+<td>네트워크</td>
+<td>10 Gbps (클러스터 내부 통신)</td>
+</tr>
+<tr>
+<td>컨테이너</td>
+<td>Elasticsearch Data (docker-compose)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">전체 서버 요약</h3>
+<table>
+<thead>
+<tr>
+<th>서버</th>
+<th>Zone</th>
+<th>CPU</th>
+<th>RAM</th>
+<th>SSD</th>
+<th>HDD</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Buffer-A</td>
+<td>A</td>
+<td>8c</td>
+<td>16 GB</td>
+<td>300 GB</td>
+<td>-</td>
+<td>Redis + Logstash</td>
+</tr>
+<tr>
+<td>Buffer-B</td>
+<td>B</td>
+<td>8c</td>
+<td>16 GB</td>
+<td>300 GB</td>
+<td>-</td>
+<td>Redis + Logstash</td>
+</tr>
+<tr>
+<td>node1</td>
+<td>B</td>
+<td>8c</td>
+<td>32 GB</td>
+<td>500 GB</td>
+<td>-</td>
+<td>ES Master + Kibana</td>
+</tr>
+<tr>
+<td>node2</td>
+<td>B</td>
+<td>16c</td>
+<td>64 GB</td>
+<td>500 GB</td>
+<td>2 TB</td>
+<td>ES Data</td>
+</tr>
+<tr>
+<td>node3</td>
+<td>B</td>
+<td>16c</td>
+<td>64 GB</td>
+<td>500 GB</td>
+<td>2 TB</td>
+<td>ES Data</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-8">5. 구축 일정 (8주)</h2>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th style="text-align: center;">W1</th>
+<th style="text-align: center;">W2</th>
+<th style="text-align: center;">W3</th>
+<th style="text-align: center;">W4</th>
+<th style="text-align: center;">W5</th>
+<th style="text-align: center;">W6</th>
+<th style="text-align: center;">W7</th>
+<th style="text-align: center;">W8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 프로젝트 준비</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>2. 서버 기반 환경 구성</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>3. TLS 인증서 생성</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>4. Elasticsearch 클러스터 구축</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>5. Redis + Logstash 버퍼 서버 구축</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>6. Logstash 파이프라인 개발</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>7. Elasticsearch 인덱스 관리 설정</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>8. 에이전트 배포</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>9. 수집 현황 대시보드 구축</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>10. 인프라 모니터링 대시보드 구축</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>11. 알림 설정</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>12. 통합 테스트</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>13. 성능 튜닝</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+</tr>
+<tr>
+<td>14. 운영 이관</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">●</td>
+</tr>
+</tbody>
+</table>
+    </div>
+
+    <footer class="doc-footer">
+      <span>LogServer — ELK 스택 기반 중앙화 로그 수집·모니터링 시스템</span>
+      <span>생성: 2026-04-23 16:52</span>
+    </footer>
+  </main>
+
+</div>
+
+<!-- 상단 이동 버튼 -->
+<a href="#top" class="back-to-top" id="backToTop">↑</a>
+
+<!-- 테이블 wrap 처리 -->
+<script>
+  document.querySelectorAll('table').forEach(function(t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+
+  // 상단 이동 버튼 표시 제어
+  var btn = document.getElementById('backToTop');
+  window.addEventListener('scroll', function() {
+    btn.classList.toggle('visible', window.scrollY > 300);
+  });
+</script>
+</body>
+</html>
