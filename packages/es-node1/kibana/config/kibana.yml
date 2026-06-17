@@ -3,7 +3,7 @@ server.port: 5601
 server.name: "logserver-kibana"
 
 elasticsearch.hosts: ["https://elasticsearch:9200"]
-elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/certs/ca.crt"]
+elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/config/certs/ca.crt"]
 
 logging.appenders.file.type: file
 logging.appenders.file.fileName: /usr/share/kibana/logs/kibana.log

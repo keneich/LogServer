@@ -13,13 +13,13 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
-      - xpack.security.http.ssl.key=/usr/share/elasticsearch/certs/node1.key
-      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/certs/node1.crt
-      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/certs/ca.crt
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/node1.key
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/node1.crt
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca.crt
       - xpack.security.transport.ssl.enabled=true
-      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/certs/node1.key
-      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/certs/node1.crt
-      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/certs/ca.crt
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/node1.key
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/node1.crt
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca.crt
       - ES_JAVA_OPTS=-Xms${ES_HEAP_MIN} -Xmx${ES_HEAP_MAX}
       - bootstrap.memory_lock=true
     ulimits:
@@ -33,13 +33,13 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - ../../packages/shared/certs:/usr/share/elasticsearch/certs:ro
+      - ../../packages/shared/certs:/usr/share/elasticsearch/config/certs:ro
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - es-data:/usr/share/elasticsearch/data
     networks:
       - esnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf --cacert /usr/share/elasticsearch/certs/ca.crt https://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf -u elastic:${ELASTIC_PASSWORD} --cacert /usr/share/elasticsearch/config/certs/ca.crt https://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -52,14 +52,14 @@ services:
       - ELASTICSEARCH_HOSTS=https://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
-      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/certs/ca.crt
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/config/certs/ca.crt
       - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}
       - SERVER_HOST=0.0.0.0
     ports:
       - "5601:5601"
     volumes:
-      - ../../packages/shared/certs:/usr/share/kibana/certs:ro
+      - ../../packages/shared/certs:/usr/share/kibana/config/certs:ro
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     networks:
       - esnet
