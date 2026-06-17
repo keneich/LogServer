@@ -8,6 +8,7 @@ services:
       - node.name=${ES_NODE_NAME}
       - node.roles=data,data_hot,data_warm,data_cold,data_content,ingest
       - network.host=0.0.0.0
+      - network.publish_host=${ES_NODE3_IP}
       - discovery.seed_hosts=${ES_NODE1_IP},${ES_NODE2_IP}
       - cluster.initial_master_nodes=node1
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
