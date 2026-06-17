@@ -37,7 +37,11 @@ fi
 
 # 설정 파일 복사
 cp filebeat.yml /etc/filebeat/filebeat.yml
-cp -r modules.d/. /etc/filebeat/modules.d/
+
+# 모든 모듈 비활성화 (filebeat.inputs와 중복 모니터링 방지)
+for f in /etc/filebeat/modules.d/*.yml; do
+  [ -f "$f" ] && mv "$f" "${f}.disabled"
+done
 
 # 환경변수 주입
 sed -i "s|\${REDIS_HOST:10.10.187.11}|${REDIS_HOST}|g" /etc/filebeat/filebeat.yml

@@ -31,16 +31,6 @@ filebeat.inputs:
       log_type: audit
     fields_under_root: true
 
-filebeat.modules:
-  - module: system
-    syslog:
-      enabled: true
-    auth:
-      enabled: true
-  - module: auditd
-    log:
-      enabled: true
-
 processors:
   - add_host_metadata:
       when.not.contains.tags: forwarded
