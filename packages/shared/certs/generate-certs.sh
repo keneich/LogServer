@@ -55,10 +55,9 @@ docker run --rm \
     mv /certs/node3/node3.crt /certs/node3.crt
     mv /certs/node3/node3.key /certs/node3.key
 
-    # 권한 설정
-    chmod 644 /certs/*.crt
-    chmod 600 /certs/*.key
-    chmod 600 /certs/ca/ca.key
+    # 권한 설정 (ES 컨테이너는 UID 1000으로 실행되므로 key도 644로 설정)
+    chmod 644 /certs/*.crt /certs/*.key
+    chmod 644 /certs/ca/ca.key
   "
 
 echo "==> 인증서 생성 완료: ${CERTS_DIR}"
