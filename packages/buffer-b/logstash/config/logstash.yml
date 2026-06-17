@@ -3,7 +3,7 @@ http.port: 9600
 
 # Persistent Queue — ES 장애 시 로그 유실 방지
 queue.type: persisted
-queue.max_bytes: 8gb
+queue.max_bytes: 200gb
 queue.checkpoint.writes: 1024
 
 pipeline.workers: 8

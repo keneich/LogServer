@@ -18,7 +18,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - /data/redis:/data
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - lognet
@@ -45,7 +45,7 @@ services:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ../../packages/shared/certs:/usr/share/logstash/certs:ro
-      - logstash-pq:/usr/share/logstash/data
+      - /data/pq:/usr/share/logstash/data
     networks:
       - lognet
     depends_on:
@@ -57,9 +57,7 @@ services:
       timeout: 10s
       retries: 3
 
-volumes:
-  redis-data:
-  logstash-pq:
+volumes: {}
 
 networks:
   lognet:
