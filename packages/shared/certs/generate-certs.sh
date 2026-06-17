@@ -31,7 +31,7 @@ docker run --rm \
     # node1
     bin/elasticsearch-certutil cert \
       --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key \
-      --name node1 --dns node1 --ip ${NODE1_IP} \
+      --name node1 --dns node1 --dns localhost --ip ${NODE1_IP} --ip 127.0.0.1 \
       --out /certs/node1.zip --pass '' --pem
     unzip -o /certs/node1.zip -d /certs
     mv /certs/node1/node1.crt /certs/node1.crt
@@ -40,7 +40,7 @@ docker run --rm \
     # node2
     bin/elasticsearch-certutil cert \
       --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key \
-      --name node2 --dns node2 --ip ${NODE2_IP} \
+      --name node2 --dns node2 --dns localhost --ip ${NODE2_IP} --ip 127.0.0.1 \
       --out /certs/node2.zip --pass '' --pem
     unzip -o /certs/node2.zip -d /certs
     mv /certs/node2/node2.crt /certs/node2.crt
@@ -49,7 +49,7 @@ docker run --rm \
     # node3
     bin/elasticsearch-certutil cert \
       --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key \
-      --name node3 --dns node3 --ip ${NODE3_IP} \
+      --name node3 --dns node3 --dns localhost --ip ${NODE3_IP} --ip 127.0.0.1 \
       --out /certs/node3.zip --pass '' --pem
     unzip -o /certs/node3.zip -d /certs
     mv /certs/node3/node3.crt /certs/node3.crt
