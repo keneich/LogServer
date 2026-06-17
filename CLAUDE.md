@@ -101,6 +101,11 @@ pnpm run deploy:agent:windows  # Winlogbeat PowerShell 설치
 2. pnpm run up:node1                    ← Master 노드 먼저 (30초 대기)
 3. pnpm run up:node2 && pnpm run up:node3
 4. pnpm run setup                       ← ILM + 템플릿
+4.5 kibana_system 비밀번호 설정         ← Kibana 기동 전 필수
+     curl --insecure -u "elastic:${ELASTIC_PASSWORD}" \
+       -X POST "https://${ES_NODE1_IP}:9200/_security/user/kibana_system/_password" \
+       -H "Content-Type: application/json" \
+       --data-raw "{\"password\": \"${ELASTIC_PASSWORD}\"}"
 5. pnpm run up:buffer-b                 ← ZoneB 버퍼
 6. pnpm run up:buffer-a                 ← ZoneA 버퍼
 7. 에이전트 배포 (agent-linux, agent-windows)
@@ -334,6 +339,7 @@ scope 예시: `pipeline`, `es-node1`, `buffer-b`, `agent-linux`, `ilm`, `certs`,
 | ES node2 (10.10.191.16) | ✅ 운영 중 | Data Node |
 | ES node3 (10.10.191.17) | ✅ 운영 중 | Data Node |
 | ES 클러스터 | ✅ GREEN | 3노드, ILM·템플릿·초기인덱스 적용 완료 |
+| Kibana (10.10.188.8:5601) | ✅ 운영 중 | 대시보드 접속 확인 완료 |
 | Buffer-B (10.10.191.15) | ✅ 운영 중 | Redis + Logstash |
 | Buffer-A | ⏸ 미진행 | 추후 진행 예정 |
 | agent-linux ZoneB Ubuntu (10.10.189.5) | ✅ 운영 중 | logs-syslog 수집 확인 |
@@ -381,6 +387,27 @@ scope 예시: `pipeline`, `es-node1`, `buffer-b`, `agent-linux`, `ilm`, `certs`,
 - **증상**: `Can only start an input when all related states are finished` (registry 삭제 후에도 재발)
 - **원인**: `filebeat.inputs` + `filebeat.modules` 가 동일 파일(`/var/log/messages` 등)을 이중 모니터링
 - **해결**: `filebeat.yml` 에서 `filebeat.modules:` 블록 제거. `install.sh` 에서 `/etc/filebeat/modules.d/*.yml` 전체 `.disabled` 리네임
+
+### Kibana ES 연결 실패: ELASTICSEARCH_HOSTS 환경변수 우선순위
+- **증상**: `kibana.yml` 을 수정해도 반영 안 됨
+- **원인**: `docker-compose.yml` 의 `ELASTICSEARCH_HOSTS` 환경변수가 `kibana.yml` 설정을 덮어씀
+- **해결**: `docker-compose.yml` 의 해당 환경변수를 `https://${ES_NODE1_IP}:9200` 으로 수정
+
+### Kibana ES 연결 실패: TLS 인증서 호스트명 불일치
+- **증상**: `Host: elasticsearch. is not in the cert's altnames: DNS:node1, IP Address:10.10.188.8`
+- **원인**: Docker 서비스명 `elasticsearch` 가 TLS 인증서 SAN에 없음 (인증서에는 `node1`, `10.10.188.8` 만 등록됨)
+- **해결**: `ELASTICSEARCH_HOSTS` 를 Docker 서비스명 대신 실제 IP(`https://10.10.188.8:9200`)로 설정
+
+### Kibana ES 인증 실패: kibana_system 비밀번호 미설정
+- **증상**: `security_exception: unable to authenticate user [kibana_system]`
+- **원인**: `kibana_system` 은 ES 내장 계정으로 초기에 비밀번호가 없음
+- **해결**: 클러스터 최초 기동 후 아래 명령으로 비밀번호 설정 (배포 순서 4.5단계에 추가 필요)
+  ```bash
+  curl --insecure -u "elastic:${ELASTIC_PASSWORD}" \
+    -X POST "https://${ES_NODE1_IP}:9200/_security/user/kibana_system/_password" \
+    -H "Content-Type: application/json" \
+    --data-raw "{\"password\": \"${ELASTIC_PASSWORD}\"}"
+  ```
 
 ### Filebeat 설정 파일 오염 (들여쓰기)
 - **증상**: 모든 키가 2칸 들여쓰기로 저장되어 YAML 파싱 실패, 로그 파일도 생성 안 됨
