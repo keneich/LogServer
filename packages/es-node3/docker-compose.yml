@@ -13,13 +13,13 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
-      - xpack.security.http.ssl.key=/usr/share/elasticsearch/certs/node3.key
-      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/certs/node3.crt
-      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/certs/ca.crt
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/node3.key
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/node3.crt
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca.crt
       - xpack.security.transport.ssl.enabled=true
-      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/certs/node3.key
-      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/certs/node3.crt
-      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/certs/ca.crt
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/node3.key
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/node3.crt
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca.crt
       - ES_JAVA_OPTS=-Xms${ES_HEAP_MIN} -Xmx${ES_HEAP_MAX}
       - bootstrap.memory_lock=true
       - path.data=/data/ssd,/data/hdd
@@ -34,14 +34,14 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - ../../packages/shared/certs:/usr/share/elasticsearch/certs:ro
+      - ../../packages/shared/certs:/usr/share/elasticsearch/config/certs:ro
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - ${ES_DATA_PATH_SSD}:/data/ssd
       - ${ES_DATA_PATH_HDD}:/data/hdd
     networks:
       - esnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf --cacert /usr/share/elasticsearch/certs/ca.crt https://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf --insecure -u \"elastic:${ELASTIC_PASSWORD}\" https://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
