@@ -170,10 +170,34 @@ ILM 4단계 정책 정의.
 `logs-*` 패턴 인덱스에 적용. `number_of_shards: 2`, `number_of_replicas: 1`.
 필드 매핑 변경 시 기존 인덱스에는 소급 적용되지 않으므로 주의.
 
+`"priority": 200` — ES 8.x 내장 `logs` 템플릿(priority 100)보다 높게 설정해야 적용된다. 낮추지 말 것.
+
 ### `packages/agent-linux/filebeat.yml`
 
 Redis output 사용. `key: "filebeat"` 고정.
 ZoneA 서버에서는 `ZONE=ZoneA`, ZoneB 서버에서는 `ZONE=ZoneB` 로 install.sh 실행.
+
+**install.sh 실행 방법:**
+```bash
+REDIS_HOST=<버퍼서버IP> \
+REDIS_PASSWORD='<패스워드>' \
+ZONE=ZoneB \
+sudo -E bash install.sh
+```
+
+**주의**: `filebeat.inputs`와 `filebeat.modules`를 동시에 사용하면 같은 파일을 이중 모니터링하여
+`Can only start an input when all related states are finished` 오류가 발생한다.
+`filebeat.yml`에는 `filebeat.modules:` 블록을 사용하지 않는다 — `filebeat.inputs`만 사용.
+install.sh는 `/etc/filebeat/modules.d/` 의 모든 모듈을 비활성화(`.disabled` 리네임)한다.
+
+**설정 파일 서버 직접 작성 시**: `tee` heredoc은 들여쓰기 오염 위험이 있으므로 Python 사용:
+```bash
+sudo python3 - << 'PYEOF'
+content = r"""...(filebeat.yml 내용)..."""
+with open('/etc/filebeat/filebeat.yml', 'w') as f:
+    f.write(content)
+PYEOF
+```
 
 ### `packages/agent-windows/winlogbeat.yml`
 
@@ -196,6 +220,13 @@ node3.crt/.key   # es-node3 전용
 `generate-certs.sh` 는 Docker 컨테이너를 임시 실행하여 `elasticsearch-certutil` 로 생성한다.
 인증서 재생성 시 클러스터 전체 재시작 필요.
 
+**인증서 권한**: `.key` 파일은 반드시 `chmod 644`. `600`으로 설정하면 ES 컨테이너(UID 1000)가 읽지 못해 기동 실패.
+
+**인증서 마운트 경로**: ES 컨테이너 내부 경로는 반드시 `/usr/share/elasticsearch/config/certs/`.
+`/usr/share/elasticsearch/certs/` 로 마운트하면 Java Security Manager가 접근을 차단한다.
+
+**Kibana 인증서 경로**: `/usr/share/kibana/config/certs/`
+
 ---
 
 ## 네트워크 구성
@@ -204,6 +235,16 @@ node3.crt/.key   # es-node3 전용
 |------|---------|------|
 | ZoneA | 10.10.184.0/24 | Linux RHEL 10대, Windows 2대, Buffer-A |
 | ZoneB | 10.10.188.0/24 | Linux RHEL 50대, Windows 2022 7대, Buffer-B, ES node1·2·3 |
+
+### 실제 서버 IP (운영 환경)
+
+| 역할 | IP | 비고 |
+|------|----|------|
+| ES node1 (Master + Kibana) | `10.10.188.8` | ZoneB |
+| ES node2 (Data) | `10.10.191.16` | ZoneB |
+| ES node3 (Data) | `10.10.191.17` | ZoneB |
+| Buffer-B | `10.10.191.15` | ZoneB Redis:6379 |
+| Buffer-A | 미설정 | ZoneA |
 
 ### 필수 개방 포트
 
@@ -278,6 +319,73 @@ scope 예시: `pipeline`, `es-node1`, `buffer-b`, `agent-linux`, `ilm`, `certs`,
 - Logstash `queue.type: persisted` 를 `memory` 로 변경하지 않는다.
 - ES JVM Heap을 32 GB 초과로 설정하지 않는다 (Compressed OOPs 비활성화됨).
 - node2·node3 보다 node1을 나중에 기동하지 않는다 (클러스터 조인 실패).
+- 인증서 `.key` 파일에 `chmod 600` 을 설정하지 않는다 (ES container UID 1000 접근 불가).
+- ES 인증서를 `/usr/share/elasticsearch/certs/` 에 마운트하지 않는다 (Security Manager 차단).
+- `filebeat.yml` 에 `filebeat.modules:` 블록을 추가하지 않는다 (`filebeat.inputs` 와 충돌).
+- `docker-compose.yml` 의 Redis `command:` 를 YAML block scalar(`>`) 로 작성하지 않는다 (특수문자 파싱 오류). 반드시 리스트 형식으로 작성.
+
+---
+
+## 배포 현황 (2026-06-17 기준)
+
+| 컴포넌트 | 상태 | 비고 |
+|----------|------|------|
+| ES node1 (10.10.188.8) | ✅ 운영 중 | Master + Kibana |
+| ES node2 (10.10.191.16) | ✅ 운영 중 | Data Node |
+| ES node3 (10.10.191.17) | ✅ 운영 중 | Data Node |
+| ES 클러스터 | ✅ GREEN | 3노드, ILM·템플릿·초기인덱스 적용 완료 |
+| Buffer-B (10.10.191.15) | ✅ 운영 중 | Redis + Logstash |
+| Buffer-A | ⏸ 미진행 | 추후 진행 예정 |
+| agent-linux ZoneB Ubuntu (10.10.189.5) | ✅ 운영 중 | logs-syslog 수집 확인 |
+| agent-linux ZoneB Ubuntu (10.10.190.15) | ✅ 운영 중 | logs-syslog 수집 확인 |
+| agent-linux RHEL 60대 | ⏸ 미진행 | |
+| agent-windows 9대 | ⏸ 미진행 | buffer-b winlogbeat 키 수신 확인됨 |
+
+---
+
+## 운영 중 발견된 이슈 및 해결책
+
+### ES 기동 실패: SSL 파일 접근 차단
+- **증상**: `java.security.AccessControlException: access denied` (PEM 파일 읽기)
+- **원인**: ES 8.x Java Security Manager는 `/usr/share/elasticsearch/config/` 외부 파일 접근 차단
+- **해결**: 인증서 마운트 경로를 `/usr/share/elasticsearch/config/certs/` 로 변경
+
+### ES 기동 실패: Private key 권한 오류
+- **증상**: `not permitted to read the PEM private key file`
+- **원인**: 호스트에서 `root:600` 권한으로 생성된 `.key` 파일을 UID 1000(elasticsearch)이 읽지 못함
+- **해결**: `chmod 644 *.key` + `generate-certs.sh` 수정
+
+### ES 클러스터 조인 실패: Docker bridge IP 발행
+- **증상**: node2·node3이 `172.18.0.x:9300` (Docker 내부 IP)을 publish해서 node1이 연결 불가
+- **해결**: `docker-compose.yml` 에 `network.publish_host: ${ES_NODE_X_IP}` 환경변수 추가
+
+### Docker healthcheck 특수문자 오류
+- **증상**: `ELASTIC_PASSWORD` 에 `(`, `)` 등 특수문자 포함 시 healthcheck 파싱 오류
+- **해결**: CMD-SHELL 배열에서 비밀번호를 `\"elastic:${ELASTIC_PASSWORD}\"` 로 이중 인용
+
+### Redis command 파싱 오류
+- **증상**: `'services[redis].command' invalid command line string`
+- **원인**: YAML block scalar(`>`) 방식으로 Redis `--requirepass` 옵션 작성 시 특수문자 파싱 실패
+- **해결**: 반드시 YAML 리스트 형식(`- redis-server`, `- --requirepass`, `- ${REDIS_PASSWORD}`) 사용
+
+### setup-es.sh curl 실패 (exit 22)
+- **증상**: `ELASTIC_PASSWORD` 특수문자로 인해 curl 명령 파싱 실패
+- **해결**: `CURL=(curl -sf --insecure -u "${ES_USER}:${ES_PASSWORD}")` bash 배열 패턴 사용 후 `"${CURL[@]}"` 로 호출
+
+### 인덱스 템플릿 적용 안 됨
+- **증상**: setup-es.sh 성공했지만 인덱스에 커스텀 매핑 미적용
+- **원인**: ES 8.x 내장 `logs` 템플릿(priority 100)이 커스텀 템플릿보다 우선
+- **해결**: `logs-template.json` 의 `"priority"` 를 `200` 으로 설정
+
+### Filebeat 기동 실패: 중복 입력 충돌
+- **증상**: `Can only start an input when all related states are finished` (registry 삭제 후에도 재발)
+- **원인**: `filebeat.inputs` + `filebeat.modules` 가 동일 파일(`/var/log/messages` 등)을 이중 모니터링
+- **해결**: `filebeat.yml` 에서 `filebeat.modules:` 블록 제거. `install.sh` 에서 `/etc/filebeat/modules.d/*.yml` 전체 `.disabled` 리네임
+
+### Filebeat 설정 파일 오염 (들여쓰기)
+- **증상**: 모든 키가 2칸 들여쓰기로 저장되어 YAML 파싱 실패, 로그 파일도 생성 안 됨
+- **원인**: 마크다운 코드블록에서 `tee` heredoc 복사·붙여넣기 시 들여쓰기가 그대로 포함됨
+- **해결**: `tee` 대신 Python `open().write()` 방식으로 파일 작성
 
 ---
 
