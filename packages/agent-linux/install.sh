@@ -8,10 +8,11 @@ ZONE="${ZONE:-ZoneA}"
 
 echo "==> Filebeat ${BEATS_VERSION} 설치 시작 (${ZONE})"
 
-# RPM 키 등록 및 저장소 추가
-rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
-
-cat > /etc/yum.repos.d/elastic.repo << 'EOF'
+# OS 감지 후 패키지 매니저 분기
+if command -v dnf &>/dev/null; then
+  # RHEL / Rocky / AlmaLinux
+  rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+  cat > /etc/yum.repos.d/elastic.repo << 'EOF'
 [elastic-8.x]
 name=Elastic repository for 8.x packages
 baseurl=https://artifacts.elastic.co/packages/8.x/yum
@@ -21,8 +22,18 @@ enabled=1
 autorefresh=1
 type=rpm-md
 EOF
-
-dnf install -y filebeat-${BEATS_VERSION}
+  dnf install -y filebeat-${BEATS_VERSION}
+else
+  # Ubuntu / Debian
+  apt-get install -y gnupg apt-transport-https
+  curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch \
+    | gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+  echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] \
+https://artifacts.elastic.co/packages/8.x/apt stable main" \
+    | tee /etc/apt/sources.list.d/elastic-8.x.list
+  apt-get update
+  apt-get install -y filebeat=${BEATS_VERSION}
+fi
 
 # 설정 파일 복사
 cp filebeat.yml /etc/filebeat/filebeat.yml
