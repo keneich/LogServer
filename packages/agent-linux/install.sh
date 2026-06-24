@@ -10,7 +10,7 @@ echo "==> Filebeat ${BEATS_VERSION} 설치 시작 (${ZONE})"
 
 # OS 감지 후 패키지 매니저 분기
 if command -v dnf &>/dev/null; then
-  # RHEL / Rocky / AlmaLinux
+  # RHEL 8+ / Rocky / AlmaLinux
   rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
   cat > /etc/yum.repos.d/elastic.repo << 'EOF'
 [elastic-8.x]
@@ -23,6 +23,20 @@ autorefresh=1
 type=rpm-md
 EOF
   dnf install -y filebeat-${BEATS_VERSION}
+elif command -v yum &>/dev/null; then
+  # RHEL 7 (dnf 미포함)
+  rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+  cat > /etc/yum.repos.d/elastic.repo << 'EOF'
+[elastic-8.x]
+name=Elastic repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+  yum install -y filebeat-${BEATS_VERSION}
 else
   # Ubuntu / Debian
   apt-get install -y gnupg apt-transport-https
